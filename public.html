@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Referral Tree v4</title>
+<style>
+:root{
+  --bg:#0d0f11;--card:#181b1e;--card2:#202428;--line:#4a5258;--text:#f3f1ec;
+  --muted:#8f979d;--accent:#ff9955;--lime:#d8ff72;
+}
+*{box-sizing:border-box}
+html{
+  margin:0;
+  min-height:100%;
+  background:#0d0f11;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  min-width:100vw;
+  padding:24px;
+  overflow:auto;
+  background:
+    radial-gradient(circle at 50% -15%,rgba(255,153,85,.09),transparent 30%),
+    linear-gradient(180deg,#0d0f11,#101315 55%,#0d0f11);
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.stage{
+  min-height:calc(100vh - 48px);
+  min-width:100%;
+  width:max-content;
+  display:flex;
+  justify-content:center;
+  padding:10px 24px 80px;
+  background:transparent;
+}
+.tree-root{display:flex;flex-direction:column;align-items:center}
+.branch{
+  display:flex;flex-direction:column;align-items:center;position:relative
+}
+.children{
+  display:flex;align-items:flex-start;justify-content:center;gap:34px;
+  margin-top:66px;position:relative;padding:0 12px
+}
+.children::before{
+  content:"";position:absolute;top:-34px;left:50%;width:2px;height:34px;background:#4d555b
+}
+.child{
+  display:flex;flex-direction:column;align-items:center;position:relative
+}
+.child::before{
+  content:"";position:absolute;top:-32px;left:50%;width:2px;height:32px;background:#4d555b
+}
+.child::after{
+  content:"";position:absolute;top:-34px;height:2px;background:#4d555b
+}
+.child:first-child::after{left:50%;right:-17px}
+.child:last-child::after{right:50%;left:-17px}
+.child:not(:first-child):not(:last-child)::after{left:-17px;right:-17px}
+.children>.child:only-child::after{display:none}
+.node{
+  width:238px;background:linear-gradient(145deg,#202428,#171a1d);
+  border:1px solid #40474c;color:#fff;padding:14px;text-align:left;cursor:pointer;
+  box-shadow:0 14px 30px rgba(0,0,0,.25);transition:.18s;position:relative;z-index:2
+}
+.node:hover{transform:translateY(-2px);border-color:#6b747a}
+.node.open{border-color:var(--accent)}
+.ntop{display:flex;align-items:center;gap:10px}
+.avatar{width:38px;height:38px;border-radius:50%;border:1px solid #596167;background:#111315;display:grid;place-items:center;font-size:11px;font-weight:900;flex:none}
+.identity{min-width:0;flex:1}
+.name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nick{font-size:10px;color:var(--muted);margin-top:3px}
+.chev{width:24px;height:24px;border-radius:50%;border:1px solid #50585e;display:grid;place-items:center;color:var(--lime);font-size:15px;transition:.18s}
+.node.open .chev{transform:rotate(180deg)}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid #353b40}
+.k{font-size:8px;color:#758087;text-transform:uppercase;letter-spacing:.11em}
+.v{font-size:10px;margin-top:3px}
+.line-badge{margin-top:10px;display:inline-flex;align-items:center;gap:6px;border:1px solid #41494f;border-radius:999px;padding:5px 8px;font-size:9px;color:#bac1c5;background:#111315}
+.line-badge i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:block}
+.inviter-label{
+  margin-top:12px;
+  font-size:9px;
+  color:#7e878d;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  border-top:1px solid #30363a;
+  padding-top:8px;
+  width:100%;
+  text-align:center
+}
+.inviter-label b{color:#aeb5ba;font-weight:700}
+@media(max-width:760px){
+  body{padding:12px}
+  .stage{justify-content:flex-start;padding:8px 12px 60px}
+  .children{gap:18px}
+  .node{width:205px}
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+
+<script>
+const U={
+ root:{id:"root",name:"Alex Morgan",nick:"@alexm",pretty:"USR-10294",tier:"Tier 4",pct:"10%",turn:"428,900 USDT",line:0,children:["a","b"]},
+
+ a:{id:"a",name:"Mila Stone",nick:"@milastone",pretty:"USR-21107",tier:"Tier 3",pct:"8%",turn:"187,450 USDT",line:1,children:["c","d"]},
+ b:{id:"b",name:"Noah Reed",nick:"@noahre",pretty:"USR-28411",tier:"Tier 2",pct:"5%",turn:"96,700 USDT",line:1,children:["m","n"]},
+
+ c:{id:"c",name:"Ivy Brooks",nick:"@ivybr",pretty:"USR-31084",tier:"Tier 2",pct:"5%",turn:"58,200 USDT",line:2,children:["e","f"]},
+ d:{id:"d",name:"Liam Cole",nick:"@liamc",pretty:"USR-31995",tier:"Tier 1",pct:"3%",turn:"31,640 USDT",line:2,children:["g"]},
+
+ m:{id:"m",name:"Emma Vale",nick:"@emmavale",pretty:"USR-32770",tier:"Tier 2",pct:"5%",turn:"44,600 USDT",line:2,children:["o"]},
+ n:{id:"n",name:"Ryan Fox",nick:"@ryanfox",pretty:"USR-32882",tier:"Tier 1",pct:"3%",turn:"21,500 USDT",line:2,children:["p","q"]},
+
+ e:{id:"e",name:"Eva Price",nick:"@evap",pretty:"USR-40218",tier:"Tier 2",pct:"5%",turn:"42,110 USDT",line:3,children:["h","i"]},
+ f:{id:"f",name:"Kai Woods",nick:"@kaiw",pretty:"USR-41802",tier:"Tier 1",pct:"3%",turn:"19,840 USDT",line:3,children:["j"]},
+ g:{id:"g",name:"Nora Bell",nick:"@norab",pretty:"USR-42517",tier:"Tier 1",pct:"3%",turn:"16,300 USDT",line:3,children:["k"]},
+
+ o:{id:"o",name:"Tom Ray",nick:"@tomray",pretty:"USR-43210",tier:"Tier 1",pct:"3%",turn:"14,200 USDT",line:3,children:["r"]},
+ p:{id:"p",name:"Luna Cross",nick:"@lunac",pretty:"USR-43321",tier:"Tier 1",pct:"3%",turn:"12,900 USDT",line:3,children:[]},
+ q:{id:"q",name:"Max Dean",nick:"@maxdean",pretty:"USR-43432",tier:"Tier 1",pct:"3%",turn:"11,750 USDT",line:3,children:["s"]},
+
+ h:{id:"h",name:"Mason Grey",nick:"@masong",pretty:"USR-50110",tier:"Tier 1",pct:"3%",turn:"9,420 USDT",line:4,children:[]},
+ i:{id:"i",name:"Zoe Hart",nick:"@zoeh",pretty:"USR-50221",tier:"Tier 1",pct:"3%",turn:"8,740 USDT",line:4,children:[]},
+ j:{id:"j",name:"Leo North",nick:"@leon",pretty:"USR-50332",tier:"Tier 1",pct:"3%",turn:"6,880 USDT",line:4,children:[]},
+ k:{id:"k",name:"Sara Lane",nick:"@saral",pretty:"USR-50443",tier:"Tier 1",pct:"3%",turn:"5,310 USDT",line:4,children:[]},
+ r:{id:"r",name:"Mia Stone",nick:"@miastone",pretty:"USR-50554",tier:"Tier 1",pct:"3%",turn:"7,820 USDT",line:4,children:[]},
+ s:{id:"s",name:"Eli Young",nick:"@eliy",pretty:"USR-50665",tier:"Tier 1",pct:"3%",turn:"4,960 USDT",line:4,children:[]}
+};
+
+const open=new Set(["root"]);
+const ini=n=>n.split(" ").map(x=>x[0]).slice(0,2).join("");
+
+function parentOf(id){
+ for(const key of Object.keys(U)){
+   if(U[key].children.includes(id)) return key;
+ }
+ return null;
+}
+function card(u){
+ const can=u.children.length>0;
+ const parentId=parentOf(u.id);
+ const inviter=parentId ? U[parentId].name : null;
+ return `<button class="node ${open.has(u.id)?"open":""}" onclick="toggle('${u.id}')">
+   <div class="ntop">
+     <div class="avatar">${ini(u.name)}</div>
+     <div class="identity"><div class="name">${u.name}</div><div class="nick">${u.nick}</div></div>
+     ${can?'<div class="chev">⌄</div>':""}
+   </div>
+   <div class="meta">
+     <div><div class="k">Pretty ID</div><div class="v">${u.pretty}</div></div>
+     <div><div class="k">Tier</div><div class="v">${u.tier}</div></div>
+     <div><div class="k">Referral</div><div class="v">${u.pct}</div></div>
+     <div><div class="k">Turnover</div><div class="v">${u.turn}</div></div>
+   </div>
+   <div class="line-badge"><i></i>${u.line===0?"Root user":"Line "+u.line}</div>
+   ${inviter ? `<div class="inviter-label">Inviter: <b>${inviter}</b></div>` : ""}
+ </button>`;
+}
+
+function branch(id){
+ const u=U[id];
+ let h=`<div class="branch">${card(u)}`;
+ if(open.has(id) && u.children.length){
+   h+=`<div class="children">`;
+   u.children.forEach(c=>h+=`<div class="child">${branch(c)}</div>`);
+   h+=`</div>`;
+ }
+ h+=`</div>`;
+ return h;
+}
+function toggle(id){
+ if(!U[id].children.length)return;
+ open.has(id)?open.delete(id):open.add(id);
+ render();
+}
+function render(){
+ document.getElementById("stage").innerHTML=`<div class="tree-root">${branch("root")}</div>`;
+}
+render();
+</script>
+</body>
+</html>
