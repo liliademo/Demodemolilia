@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Referral Admin v4</title>
+<style>
+:root{--bg:#0d0f11;--card:#181b1e;--line:#41494f;--text:#f3f1ec;--muted:#90989e;--accent:#ff9955;--lime:#d8ff72}
+*{box-sizing:border-box}
+html{
+  margin:0;
+  min-height:100%;
+  background:#0d0f11;
+  overflow:auto;
+}
+body{
+  margin:0;
+  min-height:100vh;
+  width:100%;
+  padding:20px;
+  overflow:auto;
+  background:
+    radial-gradient(circle at 50% -15%,rgba(255,153,85,.09),transparent 30%),
+    linear-gradient(180deg,#0d0f11,#101315 55%,#0d0f11);
+  color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif
+}
+.app{
+  width:100%;
+  max-width:1600px;
+  margin:0 auto;
+}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:14px}
+.tab{border:1px solid #41494f;background:#15181b;color:#8f979d;padding:9px 13px;cursor:pointer;font-size:11px;font-weight:800}
+.tab.active{border-color:var(--accent);color:#fff;background:#1d2124}
+.tab:disabled{opacity:.35;cursor:not-allowed}
+.selector{border:1px solid var(--line);background:#171a1d;padding:15px;display:grid;grid-template-columns:1fr 270px;gap:12px;align-items:end;margin-bottom:14px}
+.label{font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:#758087;margin-bottom:7px}
+.search-wrap{position:relative}.search{width:100%;padding:11px 12px;background:#101214;border:1px solid #454c51;color:#fff;outline:none}
+.results{position:absolute;left:0;right:0;top:calc(100% + 5px);background:#171a1d;border:1px solid #41494f;z-index:30;display:none}
+.results.show{display:block}.result{padding:10px 12px;border-bottom:1px solid #30363a;cursor:pointer}.result:hover{background:#22272b}.result b{font-size:11px}.result span{display:block;color:var(--muted);font-size:9px;margin-top:3px}
+.target{border:1px solid #454c51;background:#111315;padding:10px 12px}.target b{font-size:11px}.target span{display:block;color:var(--muted);font-size:9px;margin-top:3px}
+.workspace{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 230px;
+  gap:14px;
+  align-items:start;
+}
+.stage{
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,#181b1e,#131619);
+  height:calc(100vh - 155px);
+  min-height:560px;
+  max-height:900px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable both-edges;
+  padding:34px 34px 90px;
+  position:relative;
+}
+.stage::-webkit-scrollbar{width:10px;height:10px}
+.stage::-webkit-scrollbar-track{background:#111315}
+.stage::-webkit-scrollbar-thumb{background:#3c4449;border:2px solid #111315}
+.stage::-webkit-scrollbar-thumb:hover{background:#596269}
+.side-menu{
+  position:sticky;
+  top:20px;
+  border:1px solid #41494f;
+  background:linear-gradient(180deg,#191c1f,#141719);
+  padding:12px;
+  box-shadow:0 18px 50px #0007
+}
+.side-menu-title{
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:#788187;
+  padding:2px 2px 10px
+}
+.side-menu .action{
+  width:100%;
+  display:block;
+  text-align:left;
+  margin-bottom:8px;
+  padding:11px 12px
+}
+.side-menu .action:last-of-type{margin-bottom:0}
+.side-menu .status{
+  margin:12px 2px 0;
+  padding-top:11px;
+  border-top:1px solid #30363a;
+  text-align:left;
+  line-height:1.45
+}
+.tree-root{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:max-content;
+  min-width:100%;
+  margin:0;
+  padding:0 24px 40px;
+}
+.branch{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+  flex:none;
+}
+.children{
+  display:grid;
+  grid-template-columns:repeat(var(--child-count), var(--slot-width));
+  gap:var(--branch-gap);
+  align-items:start;
+  justify-content:center;
+  margin-top:72px;
+  position:relative;
+}
+.children::before{
+  content:"";
+  position:absolute;
+  top:-38px;
+  left:50%;
+  width:2px;
+  height:38px;
+  background:#50585e;
+  transform:translateX(-1px);
+}
+.child{
+  width:var(--slot-width);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  position:relative;
+  min-width:0;
+}
+.child::before{
+  content:"";
+  position:absolute;
+  top:-34px;
+  left:50%;
+  width:2px;
+  height:34px;
+  background:#50585e;
+  transform:translateX(-1px);
+}
+.children::after{
+  content:"";
+  position:absolute;
+  top:-38px;
+  left:calc(var(--slot-width) / 2);
+  right:calc(var(--slot-width) / 2);
+  height:2px;
+  background:#50585e;
+}
+.children.single::after{display:none}
+.node{width:226px;max-width:226px;background:linear-gradient(145deg,#202428,#171a1d);border:1px solid #40474c;color:#fff;padding:13px;text-align:left;cursor:pointer;box-shadow:0 12px 28px #0005;transition:.18s;position:relative;z-index:2}
+.node:hover{transform:translateY(-1px);border-color:#6b747a}.node.root{border-color:var(--accent);cursor:default}.node.sel{border-color:var(--lime);box-shadow:0 0 0 1px rgba(216,255,114,.16)}
+.ntop{display:flex;align-items:center;gap:9px}.avatar{width:36px;height:36px;border-radius:50%;border:1px solid #596167;background:#111315;display:grid;place-items:center;font-size:10px;font-weight:900}.identity{min-width:0;flex:1}.name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nick{font-size:9px;color:var(--muted);margin-top:3px}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;padding-top:9px;border-top:1px solid #353b40}.k{font-size:8px;color:#758087;text-transform:uppercase;letter-spacing:.1em}.v{font-size:10px;margin-top:3px}
+.line-badge{margin-top:9px;display:inline-flex;align-items:center;gap:6px;border:1px solid #41494f;border-radius:999px;padding:5px 8px;font-size:9px;color:#bbc2c6;background:#111315}.line-badge i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:block}
+.inviter-label{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid #30363a;
+  text-align:center;
+  font-size:9px;
+  color:#7e878d;
+  letter-spacing:.08em;
+  text-transform:uppercase
+}
+.inviter-label b{color:#aeb5ba;font-weight:700}
+.action{background:#22272b;border:1px solid #454c51;color:#eee;padding:10px;cursor:pointer;font-size:10px;font-weight:800}.action.primary{background:var(--accent);border-color:var(--accent);color:#151515}.action:disabled{opacity:.3;cursor:not-allowed}
+.status{color:var(--muted);font-size:10px}
+.after{display:none}.after.show{display:block}.before.hide{display:none}.after-head{text-align:center;margin:8px auto 18px;max-width:800px}.after-head h2{margin:0;font-size:19px}.after-head p{margin:7px 0 0;color:var(--muted);font-size:10px}
+.modalbg{position:fixed;inset:0;background:#000b;display:none;place-items:center;padding:16px;z-index:40}.modalbg.show{display:grid}.modal{width:min(550px,100%);background:#1a1e21;border:1px solid #4a5257}.mh{padding:16px;border-bottom:1px solid var(--line)}.mh h3{margin:0;font-size:17px}.mh p{margin:6px 0 0;color:var(--muted);font-size:10px}.summary{margin:16px;padding:12px;background:#121416;border-left:2px solid var(--accent);color:#a5adb2;font-size:10px;line-height:1.5}.ma{display:flex;justify-content:flex-end;gap:8px;padding:0 16px 16px}.btn{border:1px solid #454c51;background:#22272b;color:#eee;padding:9px 12px;cursor:pointer;font-size:10px;font-weight:800}.btn.primary{background:var(--accent);border-color:var(--accent);color:#151515}.toast{position:fixed;right:20px;bottom:20px;background:#202428;border:1px solid #555d63;padding:12px 14px;font-size:10px;display:none;z-index:50}.toast.show{display:block}
+@media(max-width:900px){
+  .workspace{grid-template-columns:1fr}
+  .side-menu{position:static;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .side-menu-title,.side-menu .status{grid-column:1/-1}
+  .side-menu .action{margin:0}
+}
+@media(max-width:760px){
+  html,body{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+  body{
+    padding:8px 8px 190px;
+  }
+  .app{
+    width:100%;
+    max-width:100%;
+  }
+  .tabs{
+    position:sticky;
+    top:0;
+    z-index:25;
+    background:#0d0f11;
+    padding:4px 0 8px;
+    margin-bottom:8px;
+  }
+  .tab{
+    flex:1;
+    padding:10px 8px;
+  }
+  .selector{
+    grid-template-columns:1fr;
+    gap:8px;
+    padding:12px;
+  }
+  .target{
+    width:100%;
+  }
+  .workspace{
+    display:block;
+  }
+  .stage{
+    width:100%;
+    height:auto;
+    min-height:0;
+    max-height:none;
+    overflow:visible;
+    padding:14px 10px 40px;
+    scrollbar-gutter:auto;
+  }
+  .tree-root{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    display:block;
+    padding:0;
+  }
+  .branch,
+  .child{
+    width:100% !important;
+    min-width:0;
+    max-width:100%;
+    display:block;
+  }
+  .node{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    display:block;
+  }
+  .children{
+    width:100% !important;
+    display:flex !important;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+    gap:12px !important;
+    margin-top:12px;
+    padding:0 0 0 18px;
+    border-left:1px solid #41494f;
+  }
+  .children::before,
+  .children::after,
+  .child::before{
+    display:none !important;
+  }
+  .inviter-label{
+    text-align:left;
+  }
+
+  /* Always-visible transfer menu on mobile */
+  .side-menu{
+    position:fixed !important;
+    left:8px;
+    right:8px;
+    bottom:8px;
+    top:auto;
+    z-index:100;
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    padding:10px;
+    border:1px solid #4a5258;
+    background:rgba(20,23,26,.98);
+    box-shadow:0 18px 60px rgba(0,0,0,.7);
+    backdrop-filter:blur(12px);
+  }
+  .side-menu-title{
+    grid-column:1/-1;
+    padding:0 2px 3px;
+  }
+  .side-menu .action{
+    width:100%;
+    min-height:42px;
+    margin:0;
+    padding:9px 8px;
+    text-align:center;
+    font-size:9px;
+    line-height:1.25;
+  }
+  .side-menu .action.primary{
+    grid-column:1/-1;
+  }
+  .side-menu .status{
+    grid-column:1/-1;
+    margin:2px 0 0;
+    padding:8px 2px 0;
+    font-size:9px;
+    line-height:1.35;
+    max-height:34px;
+    overflow:hidden;
+  }
+  .after .stage{
+    padding-bottom:48px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+ <div class="tabs">
+   <button class="tab active" id="beforeTab" onclick="view('before')">Before transfer</button>
+   <button class="tab" id="afterTab" onclick="view('after')" disabled>After transfer</button>
+ </div>
+
+ <div class="before" id="before">
+   <div class="selector">
+     <div><div class="label">Select user</div><div class="search-wrap"><input id="search" class="search" placeholder="Search by Pretty ID, nickname, or name"><div id="results" class="results"></div></div></div>
+     <div class="target" id="target"><b>No user selected</b><span>Select the user who will receive the referral(s)</span></div>
+   </div>
+   <div class="workspace">
+     <div class="stage">
+       <div id="tree" class="tree-root"></div>
+     </div>
+     <aside class="side-menu">
+       <div class="side-menu-title">Actions</div>
+       <button class="action" id="singleBtn" onclick="ask('single')" disabled>Move one referral</button>
+       <button class="action" id="branchBtn" onclick="ask('branch')" disabled>Move branch</button>
+       <button class="action primary" id="allBtn" onclick="ask('all')" disabled>Move all referrals</button>
+       <div class="status" id="status">First select the destination user, then select a referral in the tree</div>
+     </aside>
+   </div>
+ </div>
+
+ <div class="after" id="after">
+   <div class="after-head"><h2>Structure after transfer</h2><p id="afterText"></p></div>
+   <div class="stage"><div id="afterTree" class="tree-root"></div></div>
+ </div>
+</div>
+
+<div id="modal" class="modalbg"><div class="modal"><div class="mh"><h3 id="mt">Confirmation</h3><p>Review the operation before changing the referral structure.</p></div><div id="summary" class="summary"></div><div class="ma"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="confirmMove()">Confirm</button></div></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const INITIAL={
+ root:{id:"root",name:"Alex Morgan",nick:"@alexm",pretty:"USR-10294",tier:"Tier 4",pct:"10%",turn:"428,900 USDT",parent:null,children:["a","b"]},
+
+ a:{id:"a",name:"Mila Stone",nick:"@milastone",pretty:"USR-21107",tier:"Tier 3",pct:"8%",turn:"187,450 USDT",parent:"root",children:["c","d"]},
+ b:{id:"b",name:"Noah Reed",nick:"@noahre",pretty:"USR-28411",tier:"Tier 2",pct:"5%",turn:"96,700 USDT",parent:"root",children:["m","n"]},
+
+ c:{id:"c",name:"Ivy Brooks",nick:"@ivybr",pretty:"USR-31084",tier:"Tier 2",pct:"5%",turn:"58,200 USDT",parent:"a",children:["e","f"]},
+ d:{id:"d",name:"Liam Cole",nick:"@liamc",pretty:"USR-31995",tier:"Tier 1",pct:"3%",turn:"31,640 USDT",parent:"a",children:["g"]},
+
+ m:{id:"m",name:"Emma Vale",nick:"@emmavale",pretty:"USR-32770",tier:"Tier 2",pct:"5%",turn:"44,600 USDT",parent:"b",children:["o"]},
+ n:{id:"n",name:"Ryan Fox",nick:"@ryanfox",pretty:"USR-32882",tier:"Tier 1",pct:"3%",turn:"21,500 USDT",parent:"b",children:["p","q"]},
+
+ e:{id:"e",name:"Eva Price",nick:"@evap",pretty:"USR-40218",tier:"Tier 2",pct:"5%",turn:"42,110 USDT",parent:"c",children:["h","i"]},
+ f:{id:"f",name:"Kai Woods",nick:"@kaiw",pretty:"USR-41802",tier:"Tier 1",pct:"3%",turn:"19,840 USDT",parent:"c",children:["j"]},
+ g:{id:"g",name:"Nora Bell",nick:"@norab",pretty:"USR-42517",tier:"Tier 1",pct:"3%",turn:"16,300 USDT",parent:"d",children:["k"]},
+
+ o:{id:"o",name:"Tom Ray",nick:"@tomray",pretty:"USR-43210",tier:"Tier 1",pct:"3%",turn:"14,200 USDT",parent:"m",children:["r"]},
+ p:{id:"p",name:"Luna Cross",nick:"@lunac",pretty:"USR-43321",tier:"Tier 1",pct:"3%",turn:"12,900 USDT",parent:"n",children:[]},
+ q:{id:"q",name:"Max Dean",nick:"@maxdean",pretty:"USR-43432",tier:"Tier 1",pct:"3%",turn:"11,750 USDT",parent:"n",children:["s"]},
+
+ h:{id:"h",name:"Mason Grey",nick:"@masong",pretty:"USR-50110",tier:"Tier 1",pct:"3%",turn:"9,420 USDT",parent:"e",children:[]},
+ i:{id:"i",name:"Zoe Hart",nick:"@zoeh",pretty:"USR-50221",tier:"Tier 1",pct:"3%",turn:"8,740 USDT",parent:"e",children:[]},
+ j:{id:"j",name:"Leo North",nick:"@leon",pretty:"USR-50332",tier:"Tier 1",pct:"3%",turn:"6,880 USDT",parent:"f",children:[]},
+ k:{id:"k",name:"Sara Lane",nick:"@saral",pretty:"USR-50443",tier:"Tier 1",pct:"3%",turn:"5,310 USDT",parent:"g",children:[]},
+ r:{id:"r",name:"Mia Stone",nick:"@miastone",pretty:"USR-50554",tier:"Tier 1",pct:"3%",turn:"7,820 USDT",parent:"o",children:[]},
+ s:{id:"s",name:"Eli Young",nick:"@eliy",pretty:"USR-50665",tier:"Tier 1",pct:"3%",turn:"4,960 USDT",parent:"q",children:[]},
+
+ x:{id:"x",name:"Victor Hale",nick:"@victorh",pretty:"USR-70018",tier:"Tier 3",pct:"8%",turn:"202,400 USDT",parent:null,children:[]},
+ y:{id:"y",name:"Olivia West",nick:"@oliviaw",pretty:"USR-70022",tier:"Tier 2",pct:"5%",turn:"96,100 USDT",parent:null,children:[]},
+ z:{id:"z",name:"Daniel Frost",nick:"@danielf",pretty:"USR-70031",tier:"Tier 4",pct:"10%",turn:"604,300 USDT",parent:null,children:[]}
+};
+let U=JSON.parse(JSON.stringify(INITIAL)),selected=null,targetId=null,pending=null;
+const E={
+  beforeTab:document.getElementById("beforeTab"),
+  afterTab:document.getElementById("afterTab"),
+  before:document.getElementById("before"),
+  after:document.getElementById("after"),
+  search:document.getElementById("search"),
+  results:document.getElementById("results"),
+  targetBox:document.getElementById("target"),
+  tree:document.getElementById("tree"),
+  singleBtn:document.getElementById("singleBtn"),
+  branchBtn:document.getElementById("branchBtn"),
+  allBtn:document.getElementById("allBtn"),
+  status:document.getElementById("status"),
+  afterText:document.getElementById("afterText"),
+  afterTree:document.getElementById("afterTree"),
+  modal:document.getElementById("modal"),
+  mt:document.getElementById("mt"),
+  summary:document.getElementById("summary"),
+  toast:document.getElementById("toast")
+};
+const ini=n=>n.split(" ").map(x=>x[0]).slice(0,2).join("");
+
+function lineFrom(root,id){
+ if(root===id)return 0;
+ let d=0,p=id;
+ while(p && p!==root){d++;p=U[p].parent}
+ return p===root?d:null;
+}
+function descendants(id,a=[]){a.push(id);U[id].children.forEach(c=>descendants(c,a));return a}
+function count(id){return descendants(id,[]).length}
+
+function card(id,rootId,selectable=true){
+ const u=U[id],line=lineFrom(rootId,id);
+ const inviter = id===rootId ? null : (U[id].parent ? U[U[id].parent].name : null);
+ return `<button class="node ${id===rootId?"root":""} ${selected===id&&selectable?"sel":""}" ${id===rootId||!selectable?"disabled":""} onclick="${selectable?`selectNode('${id}')`:""}">
+  <div class="ntop"><div class="avatar">${ini(u.name)}</div><div class="identity"><div class="name">${u.name}</div><div class="nick">${u.nick} · ${u.pretty}</div></div></div>
+  <div class="meta"><div><div class="k">Tier</div><div class="v">${u.tier}</div></div><div><div class="k">Referral</div><div class="v">${u.pct}</div></div><div><div class="k">Turnover</div><div class="v">${u.turn}</div></div><div><div class="k">Children</div><div class="v">${u.children.length}</div></div></div>
+  <div class="line-badge"><i></i>${line===0?(rootId==="root"?"Root user":"Destination user"):"Line "+line}</div>
+  ${inviter ? `<div class="inviter-label">Inviter: <b>${inviter}</b></div>` : ""}
+ </button>`;
+}
+const NODE_WIDTH=226;
+const BRANCH_GAP=34;
+
+function branchWidth(id){
+  const kids=U[id].children;
+  if(!kids.length) return NODE_WIDTH;
+  const childWidths=kids.map(branchWidth);
+  const slot=Math.max(NODE_WIDTH,...childWidths);
+  return Math.max(NODE_WIDTH, kids.length*slot + (kids.length-1)*BRANCH_GAP);
+}
+
+function branch(id,rootId,selectable=true){
+ const kids=U[id].children;
+ let h=`<div class="branch" style="width:${branchWidth(id)}px">${card(id,rootId,selectable)}`;
+ if(kids.length){
+   const childWidths=kids.map(branchWidth);
+   const slot=Math.max(NODE_WIDTH,...childWidths);
+   const total=kids.length*slot+(kids.length-1)*BRANCH_GAP;
+   h+=`<div class="children ${kids.length===1?"single":""}" style="--child-count:${kids.length};--slot-width:${slot}px;--branch-gap:${BRANCH_GAP}px;width:${total}px">`;
+   kids.forEach(c=>h+=`<div class="child">${branch(c,rootId,selectable)}</div>`);
+   h+=`</div>`;
+ }
+ return h+`</div>`;
+}
+function centerStage(treeEl){
+  const stage=treeEl.closest(".stage");
+  if(!stage) return;
+  requestAnimationFrame(()=>{
+    if(window.matchMedia("(max-width: 760px)").matches){
+      stage.scrollLeft=0;
+      return;
+    }
+    const maxLeft=Math.max(0,stage.scrollWidth-stage.clientWidth);
+    stage.scrollLeft=maxLeft/2;
+    stage.scrollTop=0;
+  });
+}
+function renderMain(){
+  E.tree.innerHTML=branch("root","root",true);
+  controls();
+  centerStage(E.tree);
+}
+function renderAfter(){
+  if(targetId){
+    E.afterTree.innerHTML=branch(targetId,targetId,false);
+    centerStage(E.afterTree);
+  }
+}
+function selectNode(id){selected=id;renderMain()}
+function controls(){
+ const ready=!!targetId;
+ E.singleBtn.disabled=!(ready&&selected);E.branchBtn.disabled=!(ready&&selected);E.allBtn.disabled=!ready;
+ E.status.textContent=!ready?"First select the destination user":!selected?`Selected destination user: ${U[targetId].name}. Now select a referral or move all branches.`:`Selected referral: ${U[selected].name}. You can move only this referral or the entire branch.`;
+}
+function candidates(q=""){
+ q=q.toLowerCase().trim();let blocked=new Set(descendants("root",[]));
+ return Object.values(U).filter(u=>!blocked.has(u.id)&&(!q||u.name.toLowerCase().includes(q)||u.nick.toLowerCase().includes(q)||u.pretty.toLowerCase().includes(q)))
+}
+function showResults(q=""){E.results.innerHTML=candidates(q).map(u=>`<div class="result" onclick="chooseTarget('${u.id}')"><b>${u.name}</b><span>${u.nick} · ${u.pretty} · ${u.tier}</span></div>`).join("");E.results.classList.add("show")}
+function chooseTarget(id){targetId=id;let u=U[id];E.targetBox.innerHTML=`<b>${u.name}</b><span>${u.nick} · ${u.pretty} · ${u.tier}</span>`;E.results.classList.remove("show");E.search.value="";controls()}
+E.search.addEventListener("focus",e=>showResults(e.target.value));E.search.addEventListener("input",e=>showResults(e.target.value));document.addEventListener("click",e=>{if(!e.target.closest(".search-wrap"))E.results.classList.remove("show")});
+
+function ask(type){
+  if(!targetId) return;
+  if(type!=="all" && !selected) return;
+
+  pending=type;
+  let title="";
+  let text="";
+
+  if(type==="single"){
+    title="Move one referral";
+    text=`Only ${U[selected].name} will be moved to ${U[targetId].name}. Child referrals will remain with the current inviter.`;
+  }else if(type==="branch"){
+    title="Move branch";
+    text=`${U[selected].name} will be moved together with the entire branch. The branch contains ${count(selected)} users. Destination user: ${U[targetId].name}.`;
+  }else{
+    const roots=U.root.children.slice();
+    const total=roots.reduce((sum,id)=>sum+count(id),0);
+    title="Move all referrals";
+    text=`All direct branches of ${U.root.name} will be moved: ${roots.length} branches, ${total} users in total. Destination user: ${U[targetId].name}.`;
+  }
+
+  E.mt.textContent=title;
+  E.summary.textContent=text;
+  E.modal.classList.add("show");
+}
+
+function closeModal(){
+  E.modal.classList.remove("show");
+}
+
+function detach(id){
+  const parentId=U[id].parent;
+  if(parentId){
+    U[parentId].children=U[parentId].children.filter(childId=>childId!==id);
+  }
+}
+
+function moveBranch(id,destinationId){
+  detach(id);
+  U[id].parent=destinationId;
+  U[destinationId].children.push(id);
+}
+
+function moveSingle(id,destinationId){
+  const oldParentId=U[id].parent;
+  const childIds=U[id].children.slice();
+
+  detach(id);
+
+  if(oldParentId){
+    childIds.forEach(childId=>{
+      U[childId].parent=oldParentId;
+      if(!U[oldParentId].children.includes(childId)){
+        U[oldParentId].children.push(childId);
+      }
+    });
+  }
+
+  U[id].children=[];
+  U[id].parent=destinationId;
+  U[destinationId].children.push(id);
+}
+
+function confirmMove(){
+  const description=pending==="all" ? "all referral branches" : U[selected].name;
+
+  if(pending==="single") moveSingle(selected,targetId);
+  if(pending==="branch") moveBranch(selected,targetId);
+  if(pending==="all"){
+    U.root.children.slice().forEach(id=>moveBranch(id,targetId));
+  }
+
+  closeModal();
+  E.afterTab.disabled=false;
+  E.afterText.textContent=`Transfer completed: ${description} moved to ${U[targetId].name}. The updated structure is shown below, including the inviter for each referral.`;
+  renderAfter();
+  selected=null;
+  renderMain();
+  view("after");
+  showToast("Referral structure updated");
+}
+
+function view(v){
+  E.before.classList.toggle("hide",v==="after");
+  E.after.classList.toggle("show",v==="after");
+  E.beforeTab.classList.toggle("active",v==="before");
+  E.afterTab.classList.toggle("active",v==="after");
+  if(v==="after") centerStage(E.afterTree);
+  else centerStage(E.tree);
+}
+function showToast(t){E.toast.textContent=t;E.toast.classList.add("show");setTimeout(()=>E.toast.classList.remove("show"),2200)}
+renderMain();
+</script>
+</body>
+</html>
